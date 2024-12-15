@@ -1,0 +1,11 @@
+﻿<Window x:Class="AlgorithmLab5.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Graph Editor" Height="450" Width="800">
+    <Grid>
+        <Canvas x:Name="GraphCanvas" Background="White" MouseLeftButtonDown="GraphCanvas_MouseLeftButtonDown" MouseRightButtonDown="GraphCanvas_MouseRightButtonDown" Margin="36,0,60,62"/>
+        <Button Content="Clear" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ClearButton_Click"/>
+        <Button Content="Save" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,30,0,0" Click="SaveButton_Click"/>
+        <Button Content="Load" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,60,0,0" Click="LoadButton_Click"/>
+    </Grid>
+</Window>
