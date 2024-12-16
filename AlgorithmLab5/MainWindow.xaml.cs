@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,6 +18,7 @@ namespace AlgorithmLab5
         private Node selectedNode;
         private Edge hoveredEdge;
         private Node hoveredNode; // Добавляем переменную для отслеживания наведения на вершину
+        private int _speed = 1000;
 
         public MainWindow()
         {
@@ -295,6 +297,136 @@ namespace AlgorithmLab5
                 DrawEdge(edge);
             }
         }
+
+        private async void BFSButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (graph.Nodes.Count == 0)
+            {
+                MessageBox.Show("Граф пуст. Добавьте узлы перед запуском обхода.");
+                return;
+            }
+
+            LogTextBox.Clear();
+            await BreadthFirstSearchVisual(graph.Nodes[0]);
+        }
+
+        private async void DFSButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (graph.Nodes.Count == 0)
+            {
+                MessageBox.Show("Граф пуст. Добавьте узлы перед запуском обхода.");
+                return;
+            }
+
+            LogTextBox.Clear();
+            await DepthFirstSearchVisual(graph.Nodes[0]);
+        }
+
+        private async Task BreadthFirstSearchVisual(Node startNode)
+        {
+            foreach (var node in graph.Nodes)
+            {
+                HighlightNode(node, Brushes.Blue);
+            }
+
+            var visited = new HashSet<Node>();
+            var queue = new Queue<Node>();
+            queue.Enqueue(startNode);
+            LogTextBox.AppendText($"Начинаем обход в ширину с узла {startNode.Name}\n");
+
+            while (queue.Count > 0)
+            {
+                var currentNode = queue.Dequeue();
+
+                if (!visited.Contains(currentNode))
+                {
+                    visited.Add(currentNode);
+                    LogTextBox.AppendText($"Посещаем узел {currentNode.Name}\n");
+
+                    // Визуализируем посещение узла
+                    HighlightNode(currentNode, Brushes.Red); // Красный цвет для посещенной вершины
+                    await Task.Delay(5001 - _speed); // Задержка для визуализации
+
+                    // Добавляем соседние узлы в очередь
+                    foreach (var edge in graph.Edges.Where(e => e.Start == currentNode))
+                    {
+                        if (!visited.Contains(edge.End))
+                        {
+                            queue.Enqueue(edge.End);
+                            LogTextBox.AppendText($"Добавляем узел {edge.End.Name} в очередь\n");
+
+                            // Визуализируем добавление узла в очередь
+                            HighlightNode(edge.End, Brushes.Green); // Зеленый цвет для добавленного узла
+                            await Task.Delay(5001 - _speed); // Задержка для визуализации
+                        }
+                    }
+                }
+            }
+
+            LogTextBox.AppendText("Обход в ширину завершен.\n");
+        }
+
+        private async Task DepthFirstSearchVisual(Node startNode)
+        {
+            foreach (var node in graph.Nodes)
+            {
+                HighlightNode(node, Brushes.Blue);
+            }
+
+            var visited = new HashSet<Node>();
+            var stack = new Stack<Node>();
+            stack.Push(startNode);
+            LogTextBox.AppendText($"Начинаем обход в глубину с узла {startNode.Name}\n");
+
+            while (stack.Count > 0)
+            {
+                var currentNode = stack.Pop();
+
+                if (!visited.Contains(currentNode))
+                {
+                    visited.Add(currentNode);
+                    LogTextBox.AppendText($"Посещаем узел {currentNode.Name}\n");
+
+                    // Визуализируем посещение узла
+                    HighlightNode(currentNode, Brushes.Red); // Красный цвет для посещенной вершины
+                    await Task.Delay(5001 - _speed); // Задержка для визуализации
+
+                    // Добавляем соседние узлы в стек
+                    foreach (var edge in graph.Edges.Where(e => e.Start == currentNode))
+                    {
+                        if (!visited.Contains(edge.End))
+                        {
+                            stack.Push(edge.End);
+                            LogTextBox.AppendText($"Добавляем узел {edge.End.Name} в стек\n");
+
+                            // Визуализируем добавление узла в стек
+                            HighlightNode(edge.End, Brushes.Green); // Зеленый цвет для добавленного узла
+                            await Task.Delay(5001 - _speed); // Задержка для визуализации
+                        }
+                    }
+                }
+            }
+
+            LogTextBox.AppendText("Обход в глубину завершен.\n");
+        }
+
+        private void HighlightNode(Node node, Brush color)
+        {
+            foreach (var child in GraphCanvas.Children)
+            {
+                if (child is Ellipse ellipse && ellipse.Tag is Node n && n == node)
+                {
+                    ellipse.Fill = color;
+                }
+            }
+        }
+
+        private void DelaySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            _speed = (int)e.NewValue;
+            DelayLabel.Content = $"Скорость: {_speed}";
+        }
+
     }
 
     public class Graph
@@ -364,6 +496,7 @@ namespace AlgorithmLab5
             }
         }
 
+
         public void LoadFromFile(string filePath)
         {
             using (StreamReader reader = new StreamReader(filePath))
@@ -379,8 +512,8 @@ namespace AlgorithmLab5
                     for (int i = 0; i < nodeCount; i++)
                     {
                         double angle = 2 * Math.PI * i / nodeCount; // Угол в радианах
-                        double x = 700 + radius * Math.Cos(angle); // Центр по X (300) + радиус * косинус угла
-                        double y = 400 + radius * Math.Sin(angle); // Центр по Y (300) + радиус * синус угла
+                        double x = 600 + radius * Math.Cos(angle); // Центр по X (300) + радиус * косинус угла
+                        double y = 300 + radius * Math.Sin(angle); // Центр по Y (300) + радиус * синус угла
                         AddNode(names[i].Trim(), new Point(x, y)); // Добавляем вершину с рассчитанными координатами
                     }
                 }
@@ -410,6 +543,8 @@ namespace AlgorithmLab5
                 }
             }
         }
+
+
     }
 
     public class Node
