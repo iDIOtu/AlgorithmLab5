@@ -12,6 +12,9 @@
             <Button Content="Load" Margin="5,0,0,0" Click="LoadButton_Click"/>
             <Button Content="BFS" Margin="5,0,0,0" Click="BFSButton_Click"/>
             <Button Content="DFS" Margin="5,0,0,0" Click="DFSButton_Click"/>
+            <Button Content="Max Flow" Margin="5,0,0,0" Click="MaxFlowButton_Click"/>
+            <Button Content="MST" Margin="5,0,0,0" Click="MSTButton_Click"/>
+            <Button Content="Shortest Path" Margin="5,0,0,0" Click="ShortestPathButton_Click"/>
             <Label x:Name="DelayLabel" Content="Скорость: 1000"/>
             <Slider x:Name="SpeedSlider" Minimum="100" Maximum="5000" Value="1000" TickFrequency="100" IsSnapToTickEnabled="True" ValueChanged="DelaySlider_ValueChanged"
             Width="200" Margin="0,10,0,0" />

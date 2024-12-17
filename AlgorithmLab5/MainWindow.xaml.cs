@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using Label = System.Windows.Controls.Label;
 
 namespace AlgorithmLab5
 {
@@ -18,6 +20,8 @@ namespace AlgorithmLab5
         private Node selectedNode;
         private Edge hoveredEdge;
         private Node hoveredNode; // Добавляем переменную для отслеживания наведения на вершину
+        private Node firstSelectedNode;
+        private Node secondSelectedNode;
         private int _speed = 1000;
 
         public MainWindow()
@@ -78,6 +82,27 @@ namespace AlgorithmLab5
                 {
                     graph.RemoveNode(hoveredNode);
                     UpdateGraphCanvas();
+                }
+            }
+            else if (e.Key == Key.K)
+            {
+                if (hoveredNode != null)
+                {
+                    if (firstSelectedNode == null)
+                    {
+                        LogTextBox.Clear();
+                        firstSelectedNode = hoveredNode;
+                        HighlightNode(firstSelectedNode, Brushes.Yellow); // Выбираем первый узел
+                        LogTextBox.AppendText($"Выбран первый узел: {firstSelectedNode.Name}\n");
+                    }
+                    else if (secondSelectedNode == null && hoveredNode != firstSelectedNode)
+                    {
+                        secondSelectedNode = hoveredNode;
+                        HighlightNode(secondSelectedNode, Brushes.Yellow); // Выбираем второй узел
+                        LogTextBox.AppendText($"Выбран второй узел: {secondSelectedNode.Name}\n");
+                        // Запускаем алгоритм после выбора двух узлов
+                        ShortestPathButton_Click(null, null);
+                    }
                 }
             }
         }
@@ -200,9 +225,10 @@ namespace AlgorithmLab5
                 Y2 = edge.End.Position.Y + 30,
                 Stroke = Brushes.Black,
                 StrokeThickness = 2,
-                Tag = edge // Добавляем тег для доступа к ребру
+                Tag = edge
             };
             GraphCanvas.Children.Insert(0, line);
+            edge.Line = line; // Store the line reference in the edge
 
             TextBox weightTextBox = new TextBox
             {
@@ -222,6 +248,7 @@ namespace AlgorithmLab5
             Canvas.SetLeft(weightTextBox, midX);
             Canvas.SetTop(weightTextBox, midY);
             GraphCanvas.Children.Add(weightTextBox);
+            edge.WeightTextBox = weightTextBox; // Store the TextBox reference in the edge
 
             weightTextBox.TextChanged += (s, e) =>
             {
@@ -306,6 +333,17 @@ namespace AlgorithmLab5
                 return;
             }
 
+            foreach (var edge in graph.Edges)
+            {
+                HighlightEdge(edge, Brushes.Black);
+            }
+
+            foreach (var node in graph.Nodes)
+            {
+                HighlightNode(node, Brushes.Blue);
+            }
+
+
             LogTextBox.Clear();
             await BreadthFirstSearchVisual(graph.Nodes[0]);
         }
@@ -318,17 +356,22 @@ namespace AlgorithmLab5
                 return;
             }
 
+            foreach (var edge in graph.Edges)
+            {
+                HighlightEdge(edge, Brushes.Black);
+            }
+
+            foreach (var node in graph.Nodes)
+            {
+                HighlightNode(node, Brushes.Blue);
+            }
+
             LogTextBox.Clear();
             await DepthFirstSearchVisual(graph.Nodes[0]);
         }
 
         private async Task BreadthFirstSearchVisual(Node startNode)
         {
-            foreach (var node in graph.Nodes)
-            {
-                HighlightNode(node, Brushes.Blue);
-            }
-
             var visited = new HashSet<Node>();
             var queue = new Queue<Node>();
             queue.Enqueue(startNode);
@@ -348,15 +391,17 @@ namespace AlgorithmLab5
                     await Task.Delay(5001 - _speed); // Задержка для визуализации
 
                     // Добавляем соседние узлы в очередь
-                    foreach (var edge in graph.Edges.Where(e => e.Start == currentNode))
+                    foreach (var edge in graph.Edges.Where(e => e.Start == currentNode || e.End == currentNode))
                     {
-                        if (!visited.Contains(edge.End))
+                        Node neighbor = (edge.Start == currentNode) ? edge.End : edge.Start;
+
+                        if (!visited.Contains(neighbor))
                         {
-                            queue.Enqueue(edge.End);
-                            LogTextBox.AppendText($"Добавляем узел {edge.End.Name} в очередь\n");
+                            queue.Enqueue(neighbor);
+                            LogTextBox.AppendText($"Добавляем узел {neighbor.Name} в очередь\n");
 
                             // Визуализируем добавление узла в очередь
-                            HighlightNode(edge.End, Brushes.Green); // Зеленый цвет для добавленного узла
+                            HighlightNode(neighbor, Brushes.Green); // Зеленый цвет для добавленного узла
                             await Task.Delay(5001 - _speed); // Задержка для визуализации
                         }
                     }
@@ -366,13 +411,9 @@ namespace AlgorithmLab5
             LogTextBox.AppendText("Обход в ширину завершен.\n");
         }
 
+
         private async Task DepthFirstSearchVisual(Node startNode)
         {
-            foreach (var node in graph.Nodes)
-            {
-                HighlightNode(node, Brushes.Blue);
-            }
-
             var visited = new HashSet<Node>();
             var stack = new Stack<Node>();
             stack.Push(startNode);
@@ -392,15 +433,17 @@ namespace AlgorithmLab5
                     await Task.Delay(5001 - _speed); // Задержка для визуализации
 
                     // Добавляем соседние узлы в стек
-                    foreach (var edge in graph.Edges.Where(e => e.Start == currentNode))
+                    foreach (var edge in graph.Edges.Where(e => e.Start == currentNode || e.End == currentNode))
                     {
-                        if (!visited.Contains(edge.End))
+                        Node neighbor = (edge.Start == currentNode) ? edge.End : edge.Start;
+
+                        if (!visited.Contains(neighbor))
                         {
-                            stack.Push(edge.End);
-                            LogTextBox.AppendText($"Добавляем узел {edge.End.Name} в стек\n");
+                            stack.Push(neighbor);
+                            LogTextBox.AppendText($"Добавляем узел {neighbor.Name} в стек\n");
 
                             // Визуализируем добавление узла в стек
-                            HighlightNode(edge.End, Brushes.Green); // Зеленый цвет для добавленного узла
+                            HighlightNode(neighbor, Brushes.Green); // Зеленый цвет для добавленного узла
                             await Task.Delay(5001 - _speed); // Задержка для визуализации
                         }
                     }
@@ -409,6 +452,391 @@ namespace AlgorithmLab5
 
             LogTextBox.AppendText("Обход в глубину завершен.\n");
         }
+
+
+        private async void MaxFlowButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (graph.Nodes.Count <= 1)
+            {
+                MessageBox.Show("Граф пуст. Добавьте узлы перед запуском алгоритма.");
+                return;
+            }
+
+            foreach (var node in graph.Nodes)
+            {
+                HighlightNode(node, Brushes.Blue);
+            }
+
+            foreach (var edge in graph.Edges)
+            {
+                HighlightEdge(edge, Brushes.Black);
+            }
+
+            LogTextBox.Clear();
+            await MaxFlow(graph.Nodes[0], graph.Nodes.Last());
+        }
+
+        private async Task MaxFlow(Node source, Node sink)
+        {
+            int n = graph.Nodes.Count;
+            var capacityMatrix = new int[n, n];
+            var residualMatrix = new int[n, n];
+            var parent = new int[n];
+            var labels = new List<Label>();
+
+            // Initialize capacity and residual matrices
+            foreach (var edge in graph.Edges)
+            {
+                int startIndex = graph.Nodes.IndexOf(edge.Start);
+                int endIndex = graph.Nodes.IndexOf(edge.End);
+                capacityMatrix[startIndex, endIndex] = edge.Weight;
+                residualMatrix[startIndex, endIndex] = edge.Weight; // Initial residual capacity
+            }
+
+            int maxFlow = 0;
+
+            while (true)
+            {
+                // Perform BFS to find an augmenting path
+                bool foundPath = false;
+                var visited = new bool[n];
+                Queue<int> queue = new Queue<int>();
+                queue.Enqueue(graph.Nodes.IndexOf(source));
+                visited[graph.Nodes.IndexOf(source)] = true;
+                parent[graph.Nodes.IndexOf(source)] = -1;
+
+                while (queue.Count > 0)
+                {
+                    int u = queue.Dequeue();
+
+                    for (int v = 0; v < n; v++)
+                    {
+                        if (!visited[v] && residualMatrix[u, v] > 0) // If not visited and there's residual capacity
+                        {
+                            queue.Enqueue(v);
+                            parent[v] = u;
+                            visited[v] = true;
+
+                            if (v == graph.Nodes.IndexOf(sink)) // If we reached the sink
+                            {
+                                foundPath = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (foundPath)
+                        break;
+                }
+
+                if (!foundPath)
+                    break; // No more augmenting paths
+
+                // Find the maximum flow through the path found
+                int pathFlow = int.MaxValue;
+                for (int v = graph.Nodes.IndexOf(sink); v != graph.Nodes.IndexOf(source); v = parent[v])
+                {
+                    int u = parent[v];
+                    pathFlow = Math.Min(pathFlow, residualMatrix[u, v]);
+                }
+
+                // Update residual capacities of the edges and reverse edges along the path
+                var logEntries = new List<string>(); // Список для хранения логов
+                for (int v = graph.Nodes.IndexOf(sink); v != graph.Nodes.IndexOf(source); v = parent[v])
+                {
+                    int u = parent[v];
+                    residualMatrix[u, v] -= pathFlow; // Decrease residual capacity
+                    residualMatrix[v, u] += pathFlow; // Increase reverse capacity
+
+                    // Update edge weights for visualization
+                    var edge = graph.Edges.First(e => e.Start == graph.Nodes[u] && e.End == graph.Nodes[v]);
+                    int oldWeight = edge.Weight; // Сохраняем старый вес для логирования
+                    edge.Weight -= pathFlow; // Update the edge weight
+
+                    double midX = (edge.Start.Position.X + edge.End.Position.X) / 2 + 30; // Положение X
+                    double midY = (edge.Start.Position.Y + edge.End.Position.Y) / 2 + 30; // Положение Y
+
+                    Label weightLabel = new Label
+                    {
+                        Content = $"{oldWeight}/{pathFlow}", // Текст метки
+                        Width = 40,
+                        Height = 30,
+                        Background = Brushes.Gray,
+                        Foreground = Brushes.Black,
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        VerticalAlignment = VerticalAlignment.Top
+                    };
+
+                    Canvas.SetLeft(weightLabel, midX);
+                    Canvas.SetTop(weightLabel, midY);
+                    GraphCanvas.Children.Add(weightLabel);
+                    labels.Add(weightLabel);
+
+                    edge.WeightTextBox.Visibility = Visibility.Collapsed;
+                    edge.Line.Stroke = Brushes.Red;
+
+                    // Формируем строку логирования
+                    logEntries.Add($"Обновляем ребро {edge.Start.Name} -> {edge.End.Name} ({oldWeight}) с новым остаточным потоком {oldWeight} - {pathFlow} = {edge.Weight}");
+                }
+
+                // Выводим логирование в обратном порядке
+                foreach (var logEntry in logEntries.AsEnumerable().Reverse())
+                {
+                    LogTextBox.AppendText(logEntry + "\n");
+                    await Task.Delay(5001 - _speed); // Delay for visualization
+                }
+
+                LogTextBox.AppendText($"Текущий максимальный поток: {maxFlow} + {pathFlow} = {maxFlow + pathFlow}\n");
+                maxFlow += pathFlow;
+
+                foreach (var edge in graph.Edges)
+                {
+                    edge.WeightTextBox.Visibility = Visibility.Visible;
+                    edge.Line.Stroke = Brushes.Black;
+                }
+
+                foreach(var lable in labels)
+                {
+                    GraphCanvas.Children.Remove(lable);
+                }
+            }
+
+            // Log the final results
+            LogTextBox.AppendText($"Максимальный поток: {maxFlow}\n");
+            await Task.Delay(5001 - _speed);
+
+            // Restore original edge weights if needed
+            foreach (var edge in graph.Edges)
+            {
+                edge.Weight = capacityMatrix[graph.Nodes.IndexOf(edge.Start), graph.Nodes.IndexOf(edge.End)];
+                edge.WeightTextBox.Text = $"{edge.Weight}"; // Update TextBox
+                edge.Line.Stroke = Brushes.Black;
+            }
+        }
+
+
+        private async void MSTButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (graph.Nodes.Count == 0)
+            {
+                MessageBox.Show("Граф пуст. Добавьте узлы перед запуском алгоритма.");
+                return;
+            }
+
+            foreach (var node in graph.Nodes)
+            {
+                HighlightNode(node, Brushes.Blue);
+            }
+
+            foreach (var edge in graph.Edges)
+            {
+                HighlightEdge(edge, Brushes.Black);
+            }
+
+            LogTextBox.Clear();
+            await PrimMST();
+        }
+
+        private async Task PrimMST()
+        {
+            // Проверяем, является ли граф связным
+            if (graph.Edges.Count < graph.Nodes.Count - 1)
+            {
+                LogTextBox.AppendText("Граф несвязный! Невозможно построить остовное дерево.\n");
+                return;
+            }
+
+            var mstEdges = new List<Edge>();
+            var visited = new HashSet<Node>();
+            var priorityQueue = new SortedSet<(int weight, Edge edge)>(Comparer<(int weight, Edge edge)>.Create((x, y) =>
+            {
+                int cmp = x.weight.CompareTo(y.weight);
+                return cmp != 0 ? cmp : x.edge.GetHashCode().CompareTo(y.edge.GetHashCode());
+            }));
+
+            // Начинаем с первого узла
+            var startNode = graph.Nodes[0];
+            visited.Add(startNode);
+
+            // Добавляем все ребра, исходящие из начального узла
+            foreach (var edge in graph.Edges.Where(e => e.Start == startNode || e.End == startNode))
+            {
+                priorityQueue.Add((edge.Weight, edge));
+            }
+
+            LogTextBox.AppendText($"Начинаем построение минимального остовного дерева с узла {startNode.Name}\n");
+
+            while (priorityQueue.Count > 0)
+            {
+                var (weight, edge) = priorityQueue.Min;
+                priorityQueue.Remove(priorityQueue.Min);
+
+                // Проверяем, добавляем ли мы новое ребро
+                if (visited.Contains(edge.Start) && visited.Contains(edge.End))
+                    continue;
+
+                // Добавляем ребро в остовное дерево
+                mstEdges.Add(edge);
+                LogTextBox.AppendText($"Добавляем ребро {edge.Start.Name} - {edge.End.Name} с весом {edge.Weight}\n");
+                HighlightEdge(edge, Brushes.Red);
+                await Task.Delay(5001 - _speed); // Задержка для визуализации
+
+                // Добавляем соседние узлы в очередь
+                Node newNode = visited.Contains(edge.Start) ? edge.End : edge.Start;
+                visited.Add(newNode);
+
+                foreach (var nextEdge in graph.Edges.Where(e => e.Start == newNode || e.End == newNode))
+                {
+                    if (!visited.Contains(nextEdge.Start) || !visited.Contains(nextEdge.End))
+                    {
+                        priorityQueue.Add((nextEdge.Weight, nextEdge));
+                    }
+                }
+            }
+
+
+            LogTextBox.AppendText($"Минимальное остовное дерево построено с {mstEdges.Count} рёбрами).\n");
+
+            // Создаем граф для остовного дерева
+            var uniqueNodes = mstEdges.SelectMany(e => new[] { e.Start, e.End }).Distinct().ToList();
+            Graph mstGraph = Graph.GetGraph(mstEdges, uniqueNodes);
+
+            // Сохраняем остовное дерево в файл
+            SaveMSTToFile(mstGraph);
+        }
+
+
+        private async void ShortestPathButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (firstSelectedNode == null || secondSelectedNode == null)
+            {
+                MessageBox.Show("Пожалуйста, выберите две вершины.");
+                return;
+            }
+
+            foreach (var node in graph.Nodes)
+            {
+                HighlightNode(node, Brushes.Blue);
+            }
+
+            foreach (var edge in graph.Edges)
+            {
+                HighlightEdge(edge, Brushes.Black);
+            }
+
+            await Dijkstra(firstSelectedNode, secondSelectedNode);
+        }
+
+        private async Task Dijkstra(Node startNode, Node endNode)
+        {
+            var distances = new Dictionary<Node, int>();
+            var previousNodes = new Dictionary<Node, Node>();
+            var unvisitedNodes = new HashSet<Node>(graph.Nodes);
+
+            // Инициализация расстояний
+            foreach (var node in graph.Nodes)
+            {
+                distances[node] = int.MaxValue;
+                previousNodes[node] = null;
+            }
+            distances[startNode] = 0;
+
+            LogTextBox.AppendText($"Начальная вершина: {startNode.Name}.\n");
+
+            while (unvisitedNodes.Count > 0)
+            {
+                Node currentNode = unvisitedNodes.OrderBy(n => distances[n]).First();
+                LogTextBox.AppendText($"Посещаем вершину {currentNode.Name} с текущим расстоянием {distances[currentNode]}.\n");
+
+                if (currentNode == endNode)
+                {
+                    LogTextBox.AppendText("Конечная вершина достигнута.\n");
+                    break;
+                }
+
+                unvisitedNodes.Remove(currentNode);
+
+                foreach (var edge in graph.Edges.Where(e => e.Start == currentNode || e.End == currentNode))
+                {
+                    Node neighbor = (edge.Start == currentNode) ? edge.End : edge.Start;
+
+                    if (unvisitedNodes.Contains(neighbor))
+                    {
+                        int newDist = distances[currentNode] + edge.Weight;
+                        LogTextBox.AppendText($"Проверяем соседнюю вершину {neighbor.Name} через ребро с весом {edge.Weight}.\n");
+
+                        if (newDist < distances[neighbor])
+                        {
+                            LogTextBox.AppendText($"Обновляем расстояние до вершины {neighbor.Name}: {newDist}.\n");
+                            distances[neighbor] = newDist;
+                            previousNodes[neighbor] = currentNode;
+
+                            // Логирование пути
+                            string path = $"{startNode.Name} -> {neighbor.Name}";
+                            LogTextBox.AppendText($"Путь: {path}.\n");
+
+                            // Визуализация
+                            HighlightNode(neighbor, Brushes.Green);
+                            await Task.Delay(5001 - _speed); // Задержка для визуализации
+                        }
+                        else
+                        {
+                            LogTextBox.AppendText($"Расстояние до вершины {neighbor.Name} не обновляется, текущее значение {distances[neighbor]} меньше нового {newDist}.\n");
+                        }
+                    }
+                }
+            }
+
+            // Восстановление пути
+            var pathStack = new Stack<Node>();
+            for (Node at = endNode; at != null; at = previousNodes[at])
+            {
+                pathStack.Push(at);
+            }
+
+            LogTextBox.AppendText("Кратчайший путь: ");
+            while (pathStack.Count > 0)
+            {
+                Node nodeInPath = pathStack.Pop();
+                LogTextBox.AppendText($"{nodeInPath.Name}");
+                if (pathStack.Count > 0)
+                {
+                    LogTextBox.AppendText(" -> ");
+                }
+                HighlightNode(nodeInPath, Brushes.Red); // Подсветка кратчайшего пути
+                await Task.Delay(5001 - _speed); // Задержка для визуализации
+            }
+
+            LogTextBox.AppendText("\n");
+
+            // Сброс выбранных узлов
+            firstSelectedNode = null;
+            secondSelectedNode = null;
+        }
+
+
+
+
+
+        private void HighlightEdge(Edge edge, Brush color)
+        {
+            edge.Line.Stroke = color;
+        }
+
+        private void SaveMSTToFile(Graph mstGraph)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                Title = "Save Minimum Spanning Tree"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                mstGraph.SaveToFile(saveFileDialog.FileName);
+            }
+        }
+
 
         private void HighlightNode(Node node, Brush color)
         {
@@ -433,6 +861,11 @@ namespace AlgorithmLab5
     {
         public List<Node> Nodes { get; private set; } = new List<Node>();
         public List<Edge> Edges { get; private set; } = new List<Edge>();
+
+        public static Graph GetGraph(List<Edge> edges, List<Node> nodes)
+        {
+            return new Graph { Edges = edges, Nodes = nodes };
+        }
 
         public Node AddNode(string name, Point position)
         {
@@ -564,6 +997,8 @@ namespace AlgorithmLab5
         public Node Start { get; }
         public Node End { get; }
         public int Weight { get; set; }
+        public TextBox WeightTextBox { get; set; } // Add this line to hold the TextBox reference
+        public Line Line { get; set; } // Add this line to hold the Line reference
 
         public Edge(Node start, Node end, int weight)
         {
