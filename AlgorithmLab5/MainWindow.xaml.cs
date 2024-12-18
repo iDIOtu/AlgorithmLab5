@@ -393,16 +393,14 @@ namespace AlgorithmLab5
                     // Добавляем соседние узлы в очередь
                     foreach (var edge in graph.Edges.Where(e => e.Start == currentNode || e.End == currentNode))
                     {
-                        Node neighbor = (edge.Start == currentNode) ? edge.End : edge.Start;
-
-                        if (!visited.Contains(neighbor))
+                        if (!visited.Contains(edge.End))
                         {
-                            queue.Enqueue(neighbor);
-                            LogTextBox.AppendText($"Добавляем узел {neighbor.Name} в очередь\n");
+                            queue.Enqueue(edge.End);
+                            LogTextBox.AppendText($"Добавляем узел {edge.End.Name} в очередь\n");
 
                             // Визуализируем добавление узла в очередь
-                            HighlightNode(neighbor, Brushes.Green); // Зеленый цвет для добавленного узла
-                            await Task.Delay(5001 - _speed); // Задержка для визуализации
+                            HighlightNode(edge.End, Brushes.Green); // Зеленый цвет для добавленного узла
+                            await Task.Delay(5001 - _speed);
                         }
                     }
                 }
@@ -435,15 +433,13 @@ namespace AlgorithmLab5
                     // Добавляем соседние узлы в стек
                     foreach (var edge in graph.Edges.Where(e => e.Start == currentNode || e.End == currentNode))
                     {
-                        Node neighbor = (edge.Start == currentNode) ? edge.End : edge.Start;
-
-                        if (!visited.Contains(neighbor))
+                        if (!visited.Contains(edge.End))
                         {
-                            stack.Push(neighbor);
-                            LogTextBox.AppendText($"Добавляем узел {neighbor.Name} в стек\n");
+                            stack.Push(edge.End);
+                            LogTextBox.AppendText($"Добавляем узел {edge.End.Name} в стек\n");
 
                             // Визуализируем добавление узла в стек
-                            HighlightNode(neighbor, Brushes.Green); // Зеленый цвет для добавленного узла
+                            HighlightNode(edge.End, Brushes.Green); // Зеленый цвет для добавленного узла
                             await Task.Delay(5001 - _speed); // Задержка для визуализации
                         }
                     }
@@ -648,52 +644,59 @@ namespace AlgorithmLab5
 
             var mstEdges = new List<Edge>();
             var visited = new HashSet<Node>();
-            var priorityQueue = new SortedSet<(int weight, Edge edge)>(Comparer<(int weight, Edge edge)>.Create((x, y) =>
+            var priorityQueue = new SortedSet<(int weight, Node start, Node end)>(Comparer<(int weight, Node start, Node end)>.Create((x, y) =>
             {
-                int cmp = x.weight.CompareTo(y.weight);
-                return cmp != 0 ? cmp : x.edge.GetHashCode().CompareTo(y.edge.GetHashCode());
+                int weightComparison = x.weight.CompareTo(y.weight);
+                if (weightComparison != 0) return weightComparison;
+
+                // Если веса равны, сравниваем по меньшей вершине
+                int startComparison = x.start.Name.CompareTo(y.start.Name);
+                if (startComparison != 0) return startComparison;
+
+                return x.end.Name.CompareTo(y.end.Name);
             }));
 
             // Начинаем с первого узла
             var startNode = graph.Nodes[0];
             visited.Add(startNode);
 
-            // Добавляем все ребра, исходящие из начального узла
+            // Добавляем все рёбра, исходящие из начального узла
             foreach (var edge in graph.Edges.Where(e => e.Start == startNode || e.End == startNode))
             {
-                priorityQueue.Add((edge.Weight, edge));
+                priorityQueue.Add((edge.Weight, edge.Start, edge.End));
             }
 
             LogTextBox.AppendText($"Начинаем построение минимального остовного дерева с узла {startNode.Name}\n");
 
             while (priorityQueue.Count > 0)
             {
-                var (weight, edge) = priorityQueue.Min;
+                var (weight, start, end) = priorityQueue.Min;
                 priorityQueue.Remove(priorityQueue.Min);
 
                 // Проверяем, добавляем ли мы новое ребро
-                if (visited.Contains(edge.Start) && visited.Contains(edge.End))
+                if (visited.Contains(start) && visited.Contains(end))
                     continue;
 
                 // Добавляем ребро в остовное дерево
-                mstEdges.Add(edge);
-                LogTextBox.AppendText($"Добавляем ребро {edge.Start.Name} - {edge.End.Name} с весом {edge.Weight}\n");
-                HighlightEdge(edge, Brushes.Red);
+                Edge edgeToAdd = graph.Edges.First(e => (e.Start == start && e.End == end) || (e.Start == end && e.End == start));
+                mstEdges.Add(edgeToAdd);
+                LogTextBox.AppendText($"Добавляем ребро {edgeToAdd.Start.Name} - {edgeToAdd.End.Name} с весом {edgeToAdd.Weight}\n");
+
+                edgeToAdd.Line.Stroke = Brushes.Red;
                 await Task.Delay(5001 - _speed); // Задержка для визуализации
 
                 // Добавляем соседние узлы в очередь
-                Node newNode = visited.Contains(edge.Start) ? edge.End : edge.Start;
+                Node newNode = visited.Contains(edgeToAdd.Start) ? edgeToAdd.End : edgeToAdd.Start;
                 visited.Add(newNode);
 
                 foreach (var nextEdge in graph.Edges.Where(e => e.Start == newNode || e.End == newNode))
                 {
                     if (!visited.Contains(nextEdge.Start) || !visited.Contains(nextEdge.End))
                     {
-                        priorityQueue.Add((nextEdge.Weight, nextEdge));
+                        priorityQueue.Add((nextEdge.Weight, nextEdge.Start, nextEdge.End));
                     }
                 }
             }
-
 
             LogTextBox.AppendText($"Минимальное остовное дерево построено с {mstEdges.Count} рёбрами).\n");
 
@@ -704,6 +707,8 @@ namespace AlgorithmLab5
             // Сохраняем остовное дерево в файл
             SaveMSTToFile(mstGraph);
         }
+
+
 
 
         private async void ShortestPathButton_Click(object sender, RoutedEventArgs e)
