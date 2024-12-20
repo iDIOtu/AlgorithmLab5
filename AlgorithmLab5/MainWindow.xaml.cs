@@ -356,7 +356,7 @@ namespace AlgorithmLab5
 
             foreach (var edge in graph.Edges)
             {
-                HighlightEdge(edge, Brushes.Black);
+                HighlightEdge(edge, Brushes.Black, 2);
             }
 
             foreach (var node in graph.Nodes)
@@ -379,7 +379,7 @@ namespace AlgorithmLab5
 
             foreach (var edge in graph.Edges)
             {
-                HighlightEdge(edge, Brushes.Black);
+                HighlightEdge(edge, Brushes.Black, 2);
             }
 
             foreach (var node in graph.Nodes)
@@ -497,7 +497,7 @@ namespace AlgorithmLab5
 
             foreach (var edge in graph.Edges)
             {
-                HighlightEdge(edge, Brushes.Black);
+                HighlightEdge(edge, Brushes.Black, 2);
             }
 
             LogTextBox.Clear();
@@ -532,6 +532,9 @@ namespace AlgorithmLab5
                 queue.Enqueue(graph.Nodes.IndexOf(source));
                 visited[graph.Nodes.IndexOf(source)] = true;
                 parent[graph.Nodes.IndexOf(source)] = -1;
+                var logEntries = new List<string>(); // Список для хранения логов
+                var edgesToHighlight = new List<Edge>();
+                var labelsToShow = new List<Label>();
 
                 while (queue.Count > 0)
                 {
@@ -569,7 +572,6 @@ namespace AlgorithmLab5
                 }
 
                 // Update residual capacities of the edges and reverse edges along the path
-                var logEntries = new List<string>(); // Список для хранения логов
                 for (int v = graph.Nodes.IndexOf(sink); v != graph.Nodes.IndexOf(source); v = parent[v])
                 {
                     int u = parent[v];
@@ -578,6 +580,7 @@ namespace AlgorithmLab5
 
                     // Update edge weights for visualization
                     var edge = graph.Edges.First(e => e.Start == graph.Nodes[u] && e.End == graph.Nodes[v]);
+                    edgesToHighlight.Add(edge);
                     int oldWeight = edge.Weight; // Сохраняем старый вес для логирования
                     edge.Weight -= pathFlow; // Update the edge weight
 
@@ -597,21 +600,22 @@ namespace AlgorithmLab5
 
                     Canvas.SetLeft(weightLabel, midX);
                     Canvas.SetTop(weightLabel, midY);
-                    GraphCanvas.Children.Add(weightLabel);
+                    labelsToShow.Add(weightLabel);
                     labels.Add(weightLabel);
 
                     edge.WeightTextBox.Visibility = Visibility.Collapsed;
-                    edge.Line.Stroke = Brushes.Red;
 
                     // Формируем строку логирования
                     logEntries.Add($"Обновляем ребро {edge.Start.Name} -> {edge.End.Name} ({oldWeight}) с новым остаточным потоком {oldWeight} - {pathFlow} = {edge.Weight}");
+                    
                 }
 
-                // Выводим логирование в обратном порядке
-                foreach (var logEntry in logEntries.AsEnumerable().Reverse())
+                for (int i = logEntries.Count - 1; i >= 0; i--)
                 {
-                    LogTextBox.AppendText(logEntry + "\n");
-                    await Task.Delay(5001 - _speed); // Delay for visualization
+                    LogTextBox.AppendText(logEntries[i] + "\n");
+                    edgesToHighlight[i].Line.Stroke = Brushes.Red;
+                    GraphCanvas.Children.Add(labelsToShow[i]);
+                    await Task.Delay(5001 - _speed);
                 }
 
                 LogTextBox.AppendText($"Текущий максимальный поток: {maxFlow} + {pathFlow} = {maxFlow + pathFlow}\n");
@@ -658,7 +662,7 @@ namespace AlgorithmLab5
 
             foreach (var edge in graph.Edges)
             {
-                HighlightEdge(edge, Brushes.Black);
+                HighlightEdge(edge, Brushes.Black, 2);
             }
 
             LogTextBox.Clear();
@@ -712,7 +716,7 @@ namespace AlgorithmLab5
                 // Добавляем ребро в остовное дерево
                 Edge edgeToAdd = graph.Edges.First(e => (e.Start == start && e.End == end) || (e.Start == end && e.End == start));
                 mstEdges.Add(edgeToAdd);
-                LogTextBox.AppendText($"Добавляем ребро {edgeToAdd.Start.Name} - {edgeToAdd.End.Name} с весом {edgeToAdd.Weight}\n");
+                LogTextBox.AppendText($"Добавляем ребро, соединияющее посещенную вершину с непосещенной: {edgeToAdd.Start.Name} - {edgeToAdd.End.Name} с минимальным весом {edgeToAdd.Weight}\n");
 
                 edgeToAdd.Line.Stroke = Brushes.Red;
                 await Task.Delay(5001 - _speed); // Задержка для визуализации
@@ -758,7 +762,7 @@ namespace AlgorithmLab5
 
             foreach (var edge in graph.Edges)
             {
-                HighlightEdge(edge, Brushes.Black);
+                HighlightEdge(edge, Brushes.Black, 2);
             }
 
             await Dijkstra(firstSelectedNode, secondSelectedNode);
@@ -776,7 +780,7 @@ namespace AlgorithmLab5
             {
                 distances[node] = int.MaxValue;
                 previousNodes[node] = null;
-                Update_Distance(node, "卐"); // ∞ 
+                Update_Distance(node, "∞"); // ∞ 
             }
 
             distances[startNode] = 0;
@@ -817,13 +821,12 @@ namespace AlgorithmLab5
                             previousEdges.Add(edge);
                             Update_Distance(neighbor, newDist);
 
-                            // Логирование пути
                             string path = $"{startNode.Name} -> {neighbor.Name}";
                             LogTextBox.AppendText($"Путь: {path}.\n");
 
                             // Визуализация
                             HighlightNode(neighbor, Brushes.Green);
-                            await Task.Delay(5001 - _speed); // Задержка для визуализации
+                            await Task.Delay(5001 - _speed);
                         }
                         else
                         {
@@ -860,7 +863,7 @@ namespace AlgorithmLab5
                 }
 
                 HighlightNode(nodeInPath, Brushes.Red); // Подсветка кратчайшего пути
-                await Task.Delay(5001 - _speed); // Задержка для визуализации
+                await Task.Delay(5001 - _speed);
             }
 
             
@@ -974,6 +977,7 @@ namespace AlgorithmLab5
                 if (child is Label label && label.Tag is Node n && n == node)
                 {
                     label.Content = distance;
+                    label.Background = Brushes.Gray;
                 }
             }
         }
