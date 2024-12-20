@@ -397,10 +397,14 @@ namespace AlgorithmLab5
             var queue = new Queue<Node>();
             queue.Enqueue(startNode);
             LogTextBox.AppendText($"Начинаем обход в ширину с узла {startNode.Name}\n");
+            LogTextBox.AppendText($"Очередь: [{string.Join(", ", queue.Select(n => n.Name))}]\n");
 
             while (queue.Count > 0)
             {
                 var currentNode = queue.Dequeue();
+                LogTextBox.AppendText($"Удаляем из очереди: {currentNode.Name}\n");
+                LogTextBox.AppendText($"Очередь после удаления: [{string.Join(", ", queue.Select(n => n.Name))}]\n");
+
 
                 if (!visited.Contains(currentNode))
                 {
@@ -418,6 +422,7 @@ namespace AlgorithmLab5
                         {
                             queue.Enqueue(edge.End);
                             LogTextBox.AppendText($"Добавляем узел {edge.End.Name} в очередь\n");
+                            LogTextBox.AppendText($"Очередь после добавления: [{string.Join(", ", queue.Select(n => n.Name))}]\n");
 
                             // Визуализируем добавление узла в очередь
                             HighlightNode(edge.End, Brushes.Green); // Зеленый цвет для добавленного узла
@@ -437,10 +442,14 @@ namespace AlgorithmLab5
             var stack = new Stack<Node>();
             stack.Push(startNode);
             LogTextBox.AppendText($"Начинаем обход в глубину с узла {startNode.Name}\n");
+            LogTextBox.AppendText($"Стек: [{string.Join(", ", stack.Select(n => n.Name))}]\n");
 
             while (stack.Count > 0)
             {
                 var currentNode = stack.Pop();
+                LogTextBox.AppendText($"Удаляем из стека: {currentNode.Name}\n");
+                LogTextBox.AppendText($"Стек после удаления: [{string.Join(", ", stack.Select(n => n.Name))}]\n");
+
 
                 if (!visited.Contains(currentNode))
                 {
@@ -458,6 +467,8 @@ namespace AlgorithmLab5
                         {
                             stack.Push(edge.End);
                             LogTextBox.AppendText($"Добавляем узел {edge.End.Name} в стек\n");
+                            LogTextBox.AppendText($"Стек после добавления: [{string.Join(", ", stack.Select(n => n.Name))}]\n");
+
 
                             // Визуализируем добавление узла в стек
                             HighlightNode(edge.End, Brushes.Green); // Зеленый цвет для добавленного узла
