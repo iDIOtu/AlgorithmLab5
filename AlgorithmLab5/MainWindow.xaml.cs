@@ -4,12 +4,14 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Xml.Linq;
 using Label = System.Windows.Controls.Label;
 
 namespace AlgorithmLab5
@@ -185,10 +187,29 @@ namespace AlgorithmLab5
                 VerticalAlignment = VerticalAlignment.Top,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
-
             Canvas.SetLeft(textBox, node.Position.X + 5);
             Canvas.SetTop(textBox, node.Position.Y + 20);
             GraphCanvas.Children.Add(textBox);
+
+            // лейбл над нодой, указывающий расстояние до нее в алгоритме Дейкстры
+            SolidColorBrush mySolidColorBrush = new SolidColorBrush(Colors.Gray); // Цвет
+            mySolidColorBrush.Opacity = 0.0;                                     // Прозрачность. 0.0 - прозрачный фон
+            Label DistanceLabel = new Label
+            {
+                Width = 40,
+                Height = 30,
+                Content = "",
+                Tag = node,
+
+                Background = mySolidColorBrush,
+                BorderThickness = new Thickness(2),
+                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            Canvas.SetLeft(DistanceLabel, node.Position.X + 40);
+            Canvas.SetTop(DistanceLabel, node.Position.Y - 15);
+            GraphCanvas.Children.Add(DistanceLabel);
 
             textBox.TextChanged += (s, e) =>
             {
@@ -736,6 +757,7 @@ namespace AlgorithmLab5
         {
             var distances = new Dictionary<Node, int>();
             var previousNodes = new Dictionary<Node, Node>();
+            var previousEdges = new List<Edge>();
             var unvisitedNodes = new HashSet<Node>(graph.Nodes);
 
             // Инициализация расстояний
@@ -743,19 +765,23 @@ namespace AlgorithmLab5
             {
                 distances[node] = int.MaxValue;
                 previousNodes[node] = null;
+                Update_Distance(node, "卐"); // ∞ 
             }
+
             distances[startNode] = 0;
+            Update_Distance(startNode, 0);
 
             LogTextBox.AppendText($"Начальная вершина: {startNode.Name}.\n");
 
             while (unvisitedNodes.Count > 0)
             {
+                LogTextBox.AppendText("⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯\n");
                 Node currentNode = unvisitedNodes.OrderBy(n => distances[n]).First();
-                LogTextBox.AppendText($"Посещаем вершину {currentNode.Name} с текущим расстоянием {distances[currentNode]}.\n");
-
+                LogTextBox.AppendText($"Посещаем вершину {currentNode.Name} с текущим расстоянием {distances[currentNode]}.\n"); // {distances[currentNode] - int.MinValue + 1}
                 if (currentNode == endNode)
                 {
                     LogTextBox.AppendText("Конечная вершина достигнута.\n");
+                    Update_Distance(currentNode, distances[currentNode]);
                     break;
                 }
 
@@ -763,18 +789,22 @@ namespace AlgorithmLab5
 
                 foreach (var edge in graph.Edges.Where(e => e.Start == currentNode || e.End == currentNode))
                 {
-                    Node neighbor = (edge.Start == currentNode) ? edge.End : edge.Start;
+                    HighlightEdge(edge, Brushes.Red, 5);
 
+                    Node neighbor = (edge.Start == currentNode) ? edge.End : edge.Start;
                     if (unvisitedNodes.Contains(neighbor))
                     {
                         int newDist = distances[currentNode] + edge.Weight;
+                        LogTextBox.AppendText("⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫⬫\n");
                         LogTextBox.AppendText($"Проверяем соседнюю вершину {neighbor.Name} через ребро с весом {edge.Weight}.\n");
 
                         if (newDist < distances[neighbor])
                         {
-                            LogTextBox.AppendText($"Обновляем расстояние до вершины {neighbor.Name}: {newDist}.\n");
+                            LogTextBox.AppendText($"> Обновляем расстояние до вершины {neighbor.Name}: {newDist}.\n");
                             distances[neighbor] = newDist;
                             previousNodes[neighbor] = currentNode;
+                            previousEdges.Add(edge);
+                            Update_Distance(neighbor, newDist);
 
                             // Логирование пути
                             string path = $"{startNode.Name} -> {neighbor.Name}";
@@ -786,19 +816,28 @@ namespace AlgorithmLab5
                         }
                         else
                         {
-                            LogTextBox.AppendText($"Расстояние до вершины {neighbor.Name} не обновляется, текущее значение {distances[neighbor]} меньше нового {newDist}.\n");
+                            LogTextBox.AppendText($"> Расстояние до вершины {neighbor.Name} не обновляется, текущее значение {distances[neighbor]} меньше нового { newDist }.\n");
                         }
                     }
+                    HighlightEdge(edge, Brushes.Black, 1);
                 }
             }
 
             // Восстановление пути
             var pathStack = new Stack<Node>();
+            var pathStackClone = new Stack<Node>();
+            var pathEdgesStack = new Stack<Edge>();
             for (Node at = endNode; at != null; at = previousNodes[at])
             {
                 pathStack.Push(at);
+                pathStackClone.Push(at);
             }
 
+            pathEdgesStack = GetPathEdges(pathStackClone);
+            foreach (Edge edge in pathEdgesStack) 
+            {
+                HighlightEdge(edge, Brushes.Red, 5);
+            }
             LogTextBox.AppendText("Кратчайший путь: ");
             while (pathStack.Count > 0)
             {
@@ -808,9 +847,12 @@ namespace AlgorithmLab5
                 {
                     LogTextBox.AppendText(" -> ");
                 }
+
                 HighlightNode(nodeInPath, Brushes.Red); // Подсветка кратчайшего пути
                 await Task.Delay(5001 - _speed); // Задержка для визуализации
             }
+
+            
 
             LogTextBox.AppendText("\n");
 
@@ -819,13 +861,56 @@ namespace AlgorithmLab5
             secondSelectedNode = null;
         }
 
+        private Stack<Edge> GetPathEdges(Stack<Node> pathStack)
+        {
+            var pathEdgesStack = new Stack<Edge>();
+            int length = pathStack.Count;
+            if (length > 1)
+            {
+                Node node = pathStack.Pop();
+                for (int i = 0; i < length - 1; i++)
+                {
+                    Node nextNode = pathStack.Pop();
 
+                    foreach (Edge edge in graph.Edges)
+                    {
+                        if (edge.Start == node && edge.End == nextNode)
+                        {
+                            pathEdgesStack.Push(edge);
+                        }
+                    }
+                    node = nextNode;
+                }
+            }
+            return pathEdgesStack;
+        }
 
+        private Stack<Edge> GetPathEdges(Dictionary<Node, Node> path)
+        {
 
+            var pathEdgesStack = new Stack<Edge>();
+
+            foreach (KeyValuePair<Node, Node> nodes in path)
+            {
+                foreach (Edge edge in graph.Edges)
+                {
+                    if (edge.Start == nodes.Key && edge.End == nodes.Value) 
+                    {
+                        pathEdgesStack.Push(edge);
+                    }
+                }
+            }
+            return pathEdgesStack;
+        }
 
         private void HighlightEdge(Edge edge, Brush color)
         {
             edge.Line.Stroke = color;
+        }
+        private void HighlightEdge(Edge edge, Brush color, int thickness)
+        {
+            edge.Line.Stroke = color;
+            edge.Line.StrokeThickness = thickness;
         }
 
         private void SaveMSTToFile(Graph mstGraph)
@@ -859,6 +944,29 @@ namespace AlgorithmLab5
             _speed = (int)e.NewValue;
             DelayLabel.Content = $"Скорость: {_speed}";
         }
+
+        private void Update_Distance(Node node, int distance)
+        {
+            foreach (var child in GraphCanvas.Children)
+            {
+                if (child is Label label && label.Tag is Node n && n == node)
+                {
+                    label.Content = distance;
+                }
+            }
+        }
+
+        private void Update_Distance(Node node, string distance) // Джинерики для слабаков
+        {
+            foreach (var child in GraphCanvas.Children)
+            {
+                if (child is Label label && label.Tag is Node n && n == node)
+                {
+                    label.Content = distance;
+                }
+            }
+        }
+
 
     }
 
@@ -988,6 +1096,7 @@ namespace AlgorithmLab5
     public class Node
     {
         public string Name { get; set; }
+        //public int distance { get; set; }
         public Point Position { get; set; }
         public bool IsSelected { get; private set; }
 
