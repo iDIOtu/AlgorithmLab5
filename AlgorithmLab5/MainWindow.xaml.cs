@@ -192,19 +192,21 @@ namespace AlgorithmLab5
             GraphCanvas.Children.Add(textBox);
 
             // лейбл над нодой, указывающий расстояние до нее в алгоритме Дейкстры
-            SolidColorBrush mySolidColorBrush = new SolidColorBrush(Colors.Gray); // Цвет
-            mySolidColorBrush.Opacity = 0.0;                                     // Прозрачность. 0.0 - прозрачный фон
+            SolidColorBrush mySolidColorBrush = new SolidColorBrush(Colors.White); // Цвет
+            mySolidColorBrush.Opacity = 0.75;                                     // Дефолтная прозрачность. 0.0 - прозрачный фон                                      // Прозрачность границы. 
+            
             Label DistanceLabel = new Label
             {
                 Width = 40,
                 Height = 30,
                 Content = "",
                 Tag = node,
-
                 Background = mySolidColorBrush,
-                BorderThickness = new Thickness(2),
+                BorderThickness = new Thickness(1),
+                BorderBrush = Brushes.Black,
                 VerticalAlignment = VerticalAlignment.Top,
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Opacity = 0, // Прозрачность после активации Дейкстры смотреть в методе Update_Distance(Node node, string distance) на строке 966
             };
 
             Canvas.SetLeft(DistanceLabel, node.Position.X + 40);
@@ -586,13 +588,13 @@ namespace AlgorithmLab5
 
                     double midX = (edge.Start.Position.X + edge.End.Position.X) / 2 + 30; // Положение X
                     double midY = (edge.Start.Position.Y + edge.End.Position.Y) / 2 + 30; // Положение Y
-
+                    
                     Label weightLabel = new Label
                     {
                         Content = $"{oldWeight}/{pathFlow}", // Текст метки
                         Width = 40,
                         Height = 30,
-                        Background = Brushes.Gray,
+                        Background = Brushes.White,
                         Foreground = Brushes.Black,
                         HorizontalAlignment = HorizontalAlignment.Left,
                         VerticalAlignment = VerticalAlignment.Top
@@ -966,6 +968,7 @@ namespace AlgorithmLab5
                 if (child is Label label && label.Tag is Node n && n == node)
                 {
                     label.Content = distance;
+                    label.Opacity = 1;
                 }
             }
         }
@@ -977,7 +980,8 @@ namespace AlgorithmLab5
                 if (child is Label label && label.Tag is Node n && n == node)
                 {
                     label.Content = distance;
-                    label.Background = Brushes.Gray;
+                    label.Background.Opacity = 0.75;
+                    label.Opacity = 1;
                 }
             }
         }
